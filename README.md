@@ -1,121 +1,273 @@
 # SubLoop
 
-Subscription-management product prototype for the Odoo x CUSAT hackathon.
+> Subscription-management system — Odoo × CUSAT Hackathon
 
-The repository now contains two workstreams:
+SubLoop is a full-stack subscription management platform built with NestJS, Next.js, PostgreSQL, and Redis.
 
-- **`apps/web`** — the Role D Next.js frontend experience (finance dashboard and customer portal), which shows labeled sample data by default.
-- **`apps/api`** — the backend core (member A): authentication, RBAC, catalog and the subscription lifecycle, built on NestJS + Prisma + PostgreSQL.
+---
 
-The web app includes a browser-local Task B billing/discount/payment demo. Billing, payments, reports and portal API endpoints are still owned by the other workstreams; `docs/deployment.md` records the contract the frontend expects from them.
+## Architecture
 
-## Quick start
+```
+subloop/
+├── apps/
+│   ├── api/        — NestJS REST API (port 3001)
+│   ├── admin/      — Next.js Admin & Staff panel (port 3002)
+│   └── web/        — Next.js Finance dashboard + Customer portal (port 3000)
+├── packages/
+│   └── shared/     — State machine, password policy, types (shared by API + UI)
+└── prisma/         — Database schema, migrations, seed
+```
 
-### Docker Compose
+---
 
-```powershell
-Copy-Item .env.example .env
+## Prerequisites
+
+| Tool | Version |
+|------|---------|
+| Node.js | ≥ 20 |
+| Docker Desktop | Latest |
+| npm | ≥ 10 |
+
+---
+
+## Option 1 — One-Command Start (Docker Compose) ⭐ Recommended
+
+This spins up Postgres, Redis, Mailpit, and the web frontend in a single command.
+
+```bash
+# 1. Copy environment file
+cp .env.example .env        # Linux / macOS
+copy .env.example .env      # Windows (cmd)
+
+# 2. Start all services
 docker compose up --build
 ```
 
-Open:
+| Service | URL |
+|---------|-----|
+| Finance Dashboard & Portal | <http://localhost:3000> |
+| Mailpit (email preview) | <http://localhost:8025> |
+| PostgreSQL | `localhost:5432` |
+| Redis | `localhost:6379` |
 
-- Dashboard: <http://localhost:3000>
-- Customer portal: <http://localhost:3000/portal>
-- Mailpit: <http://localhost:8025>
+> The API must be started separately (see Option 2) — it is not included in the Compose file to allow hot-reload during development.
 
-The dashboard and portal deliberately show labeled sample data by default. Billing demo actions (billing runs, discount rules, and payments) are stored in the browser's local storage only; they are not sent to an API or shared with other users. Use **Reset demo** in the billing workflow to restore the sample state.
+---
 
-The Task B billing workflow supports generating an idempotent demo invoice from a due subscription, applying eligible discount rules and tax, confirming/cancelling invoices, recording partial/full payments, and filtering/exporting invoice rows. It is a frontend-only simulation: scheduled jobs, database persistence, payment processing, email delivery, and backend authorization are not implemented.
+## Option 2 — Full Local Development (all three apps)
 
-### API (backend core)
+Run each service in a separate terminal.
+
+### Step 1 — Start infrastructure
 
 ```bash
-npm install                # root workspaces: apps/api + packages/shared
-docker compose up -d       # Postgres, Redis, Mailpit
 cp .env.example .env
-npm run prisma:generate
-npm run prisma:deploy      # applies prisma/migrations
-npm run db:seed            # 1 admin, 2 staff, customers, Brightloop catalog
-npm run dev                # http://localhost:3001/api/v1 (Swagger at /api/docs)
+docker compose up -d postgres redis mailpit
 ```
 
-Seeded logins:
+### Step 2 — Install all dependencies
+
+```bash
+npm install           # installs root workspaces (apps/api + packages/shared)
+```
+
+### Step 3 — Set up the database
+
+```bash
+npm run prisma:generate        # generate Prisma client
+npm run prisma:deploy          # apply all migrations
+npm run db:seed                # seed demo data (admin, staff, customers, catalog)
+```
+
+### Step 4 — Start the API (Terminal 1)
+
+```bash
+npm run dev
+# → http://localhost:3001/api/v1
+# → Swagger UI at http://localhost:3001/api/docs
+```
+
+### Step 5 — Start the Admin panel (Terminal 2)
+
+```bash
+cd apps/admin
+npm install
+npm run dev
+# → http://localhost:3002
+```
+
+### Step 6 — Start the Web / Portal (Terminal 3)
+
+```bash
+cd apps/web
+npm install
+npm run dev
+# → http://localhost:3000          (Finance dashboard)
+# → http://localhost:3000/portal   (Customer portal)
+```
+
+---
+
+## Seeded Demo Logins
 
 | Role | Email | Password |
-|---|---|---|
+|------|-------|----------|
 | Admin | `admin@subloop.local` | `Admin@12345` |
 | Staff | `staff@subloop.local` | `Staff@12345` |
 | Customer | `customer@subloop.local` | `Customer@12345` |
 
-Backend scripts: `npm run build`, `npm run typecheck`, `npm run lint`,
-`npm test`, `npm run prisma:generate | prisma:migrate | prisma:deploy`,
-`npm run db:seed`.
+---
 
-### Web app directly
+## Environment Variables
 
-```powershell
-Set-Location apps/web
-npm ci
-npm run dev
+All variables live in `.env` (copied from `.env.example`). Key settings:
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `DATABASE_URL` | `postgresql://subloop:...@localhost:5432/subloop` | Postgres connection string |
+| `REDIS_URL` | `redis://localhost:6379` | Redis for billing job queue |
+| `JWT_ACCESS_SECRET` | *(must change)* | Access token signing secret |
+| `JWT_REFRESH_SECRET` | *(must change)* | Refresh token signing secret |
+| `NEXT_PUBLIC_API_URL` | `http://localhost:3001/api/v1` | API base URL used by the frontends |
+| `NEXT_PUBLIC_DEMO_MODE` | `true` | Set to `false` to connect to real API |
+| `BILLING_CRON` | `30 0 * * *` | Daily billing job schedule (cron) |
+| `INVOICE_DEFAULT_STATUS` | `CONFIRMED` | Status for billing-run invoices |
+| `SMTP_HOST` | `localhost` | SMTP server (Mailpit in dev) |
+| `WEB_APP_URL` | `http://localhost:3000` | Used to build password reset links |
+
+---
+
+## API Surface
+
+Base URL: `/api/v1` · Auth: `Authorization: Bearer <accessToken>` (except public routes marked `*`)
+
+| Area | Endpoints |
+|------|-----------|
+| **Auth** | `POST /auth/signup`\*, `/auth/login`\*, `/auth/refresh`\*, `/auth/logout`, `/auth/forgot-password`\*, `/auth/reset-password`\*, `GET /auth/me` |
+| **Users** | `POST /users/staff`, `GET /users`, `PATCH /users/:id` *(admin only)* |
+| **Customers** | `GET /customers`, `POST /customers`, `GET /customers/:id`, `PATCH /customers/:id` |
+| **Products** | `GET/POST /products`, `GET/PATCH /products/:id`, `GET/POST /products/:id/variants`, `PATCH /products/:id/variants/:vid` |
+| **Plans** | `GET/POST /plans`, `GET/PATCH /plans/:id` |
+| **Taxes** | `GET/POST /taxes`, `GET/PATCH/DELETE /taxes/:id` |
+| **Discounts** | `GET/POST /discounts`, `GET/PATCH/DELETE /discounts/:id` *(admin only)* |
+| **Quotation Templates** | `GET/POST /quotation-templates`, `GET/PATCH /quotation-templates/:id` |
+| **Subscriptions** | `POST /subscriptions`, `POST /subscriptions/from-template/:id`, `GET /subscriptions`, `GET/PATCH /subscriptions/:id`, `GET /subscriptions/:id/history`, `POST /subscriptions/:id/{send-quotation,confirm,activate,pause,resume,renew,close}` |
+| **Invoices** | `GET /invoices`, `POST /invoices`, `GET/PATCH /invoices/:id`, `POST /invoices/run-billing`, `POST /invoices/:id/{confirm,cancel,send}` |
+| **Payments** | `GET /payments`, `POST /payments`, `GET /payments/:id`, `GET /invoices/:id/payments` |
+| **Dashboard** | `GET /dashboard/stats`, `GET /dashboard/revenue-chart`, `GET /dashboard/payments-chart` |
+| **Audit Log** | `GET /audit-log` *(admin only)* |
+
+Full interactive docs: **<http://localhost:3001/api/docs>**
+
+---
+
+## RBAC Rules
+
+| Action | Admin | Staff | Customer |
+|--------|-------|-------|----------|
+| Create / manage staff accounts | ✅ | ❌ | ❌ |
+| Configure discounts | ✅ | ❌ | ❌ |
+| Full catalog CRUD | ✅ | Read | ❌ |
+| Subscription day-to-day work | ✅ | ✅ | Own only |
+| View invoices / payments | ✅ | ✅ | Own only |
+| Run billing | ✅ | ✅ | ❌ |
+| View audit log | ✅ | ❌ | ❌ |
+
+Row-level ownership is enforced in service queries (not just route guards) so a customer cannot probe other customers' IDs.
+
+---
+
+## Useful Scripts (run from repo root)
+
+```bash
+npm run dev              # Start API in watch mode
+npm run build            # Build shared + API
+npm run typecheck        # Type-check shared + API
+npm run lint             # Lint API
+npm run test             # Run all unit tests
+
+npm run prisma:generate  # Regenerate Prisma client after schema changes
+npm run prisma:migrate   # Create a new migration (dev)
+npm run prisma:deploy    # Apply migrations (CI / production)
+npm run prisma:studio    # Open Prisma Studio at http://localhost:5555
+npm run db:seed          # Re-seed demo data
 ```
 
-## Web quality checks
+Admin panel (run from `apps/admin`):
 
-Run from `apps/web`:
-
-```powershell
-npm run lint
-npm run typecheck
-npm run build
+```bash
+npm run dev              # Start admin Next.js dev server (port 3002)
+npm run build            # Production build
+npm run typecheck        # Type-check admin
 ```
 
-## API surface (backend core)
+Web app (run from `apps/web`):
 
-Base URL `/api/v1`. Everything requires `Authorization: Bearer <accessToken>`
-except the routes marked *public*.
+```bash
+npm run dev              # Start web Next.js dev server (port 3000)
+npm run build            # Production build
+npm run lint             # Lint web app
+npm run typecheck        # Type-check web app
+```
 
-| Area | Routes |
-|---|---|
-| Auth | `POST /auth/signup`*, `/auth/login`*, `/auth/refresh`*, `/auth/logout`, `/auth/forgot-password`*, `/auth/reset-password`*, `GET /auth/me` |
-| Users | `POST /users/staff`, `GET /users`, `PATCH /users/:id` (admin only) |
-| Catalog | `/customers`, `/products` (+ `/products/:id/variants`), `/plans`, `/taxes`, `/discounts`, `/quotation-templates` |
-| Subscriptions | `POST /subscriptions`, `POST /subscriptions/from-template/:templateId`, `GET /subscriptions`, `GET /subscriptions/:id`, `GET /subscriptions/:id/history`, `PATCH /subscriptions/:id`, `POST /subscriptions/:id/{send-quotation,confirm,activate,pause,resume,renew,close}` |
+---
 
-Role rules: only admins create staff, configure discounts or delete records;
-staff get read access to the catalog and full day-to-day subscription work;
-customers can only read their own subscriptions (enforced by row-level
-ownership filtering, not just the route guard).
+## Performance Testing (k6)
 
-## Project map
+```bash
+# Install k6: https://k6.io/docs/getting-started/installation/
+k6 run performance/dashboard.js
+```
 
-- `apps/web` — Next.js 16 dashboard and customer portal.
-- `apps/api` — NestJS 10 REST API (`/api/v1`, OpenAPI at `/api/docs`).
-- `packages/shared` — role/status constants, the password policy and the
-  subscription state machine shared by the API and the UI.
-- `prisma` — schema, first migration, and the demo seed.
-- `performance/dashboard.js` — k6 smoke/load check for the reports summary endpoint.
-- `docs/demo-script.md` — three-minute demo walkthrough.
-- `docs/deployment.md` — local setup, API contract, and production-readiness checklist.
-- `docker-compose.yml` — local PostgreSQL, Redis, Mailpit, and web app services.
+Target: p95 < 2 s on the seeded dataset.
 
-For Role D scope, integration requirements, and demo limitations, read `docs/deployment.md`. See `docs/task.md` for the overall product plan.
+---
 
-## Backend design notes
+## Project Map
 
-- Emails are normalised to lower case and uniquely indexed (case-insensitive
-  uniqueness without the `citext` extension).
-- Refresh tokens are stored hashed per user and rotated on every refresh; a
-  replayed token invalidates the session.
-- Subscription numbers (`SUB-000123`) come from a Postgres sequence, so
-  concurrent creates cannot collide. The invoice sequence is created in the same
-  migration for the billing engine.
-- The subscription state machine lives in `packages/shared`, so the UI can
-  disable illegal actions using exactly the rules the API enforces. Plan flags
-  (`pausable`, `closable`, `renewable`, `autoClose`) gate the transitions.
-- Deletes are soft (`isActive=false`) for anything referenced by history, and
-  every catalog change, staff creation and status transition is written to
-  `audit_log`.
-- The auto-close and quotation-expiry workers run in-process via
-  `@nestjs/schedule` (batched, 200 per round) so the demo needs no Redis; they
-  can move into BullMQ processors without behaviour changes.
+```
+apps/api/src/
+├── auth/                 — JWT auth, signup, login, refresh, password reset
+├── users/                — Staff management (admin only)
+├── customers/            — Customer CRUD
+├── products/             — Products + variants
+├── plans/                — Subscription plans + flags
+├── taxes/                — Tax rules
+├── discounts/            — Discount rules (admin only)
+├── quotation-templates/  — Quotation templates
+├── subscriptions/        — Subscription lifecycle + scheduler
+├── invoices/             — Invoice engine + billing job
+├── payments/             — Payment recording (partial + full)
+├── dashboard/            — KPI stats, revenue & payment charts
+└── common/
+    ├── audit/            — Audit log service
+    ├── guards/           — JWT + Roles guards
+    ├── mail/             — Nodemailer (Mailpit in dev)
+    └── money/            — Decimal-safe arithmetic
+
+apps/admin/src/           — Admin/Staff panel (Next.js + shadcn/ui)
+apps/web/src/             — Finance dashboard + Customer portal (Next.js)
+packages/shared/          — State machine, password policy, shared types
+prisma/
+├── schema.prisma         — Full database schema
+├── migrations/           — Migration history
+└── seed.ts               — Demo data seed
+performance/dashboard.js  — k6 load test script
+docs/
+├── task.md               — Build plan & phase checklist
+├── Architecture.md       — System design & DB indexes
+├── deployment.md         — Deployment guide & API contract
+└── Proposal.md           — Project proposal
+```
+
+---
+
+## Design Notes
+
+- **Subscription numbers** (`SUB-000123`) and **invoice numbers** (`INV-000123`) come from Postgres sequences — concurrent creates never collide.
+- **Billing idempotency** — `UNIQUE(subscriptionId, periodStart, periodEnd)` prevents double-billing across repeated billing runs.
+- **Refresh token rotation** — tokens are stored hashed; replaying an old token invalidates the entire session.
+- **Soft deletes** — catalog items use `isActive = false` so history references never break.
+- **Decimal-safe arithmetic** — all money calculations use `Prisma.Decimal` (BE) and the shared `sumDecimals` helper (FE).
+- **State machine** — subscription transitions live in `packages/shared`, so the admin UI disables illegal actions using the exact same rules the API enforces.

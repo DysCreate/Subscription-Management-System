@@ -1,20 +1,25 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
+import { BillingQueueService } from '../billing/billing.queue';
 import { SubscriptionsService } from './subscriptions.service';
 
 /**
  * Phase 3 background worker.
  *
  * Runs in-process via @nestjs/schedule so the API stays demoable without a
- * Redis/BullMQ worker; the jobs themselves are batched and idempotent, so they
- * can be lifted into a BullMQ processor later without behaviour changes.
+ * Redis/BullMQ worker; the jobs themselves are batched and idempotent. Billing
+ * itself is queued through BullMQ (see BillingQueueService), while this
+ * scheduler keeps the subscription lifecycle tidy and queues invoice emails.
  */
 @Injectable()
 export class SubscriptionsScheduler {
   private readonly logger = new Logger(SubscriptionsScheduler.name);
   private autoCloseRunning = false;
 
-  constructor(private readonly subscriptionsService: SubscriptionsService) {}
+  constructor(
+    private readonly subscriptionsService: SubscriptionsService,
+    private readonly billingQueue: BillingQueueService,
+  ) {}
 
   @Cron(CronExpression.EVERY_DAY_AT_1AM)
   async runAutoClose(): Promise<void> {
@@ -37,6 +42,16 @@ export class SubscriptionsScheduler {
       if (expired > 0) this.logger.log(`Quotation expiry: ${expired} expired`);
     } catch (error) {
       this.logger.error(`Quotation expiry run failed: ${(error as Error).message}`);
+    }
+  }
+
+  @Cron(CronExpression.EVERY_10_MINUTES)
+  async runInvoiceEmails(): Promise<void> {
+    try {
+      const { enqueued } = await this.billingQueue.enqueueRecentInvoiceEmails();
+      if (enqueued > 0) this.logger.log(`Invoice email queue: ${enqueued} job(s) added`);
+    } catch (error) {
+      this.logger.error(`Invoice email queue failed: ${(error as Error).message}`);
     }
   }
 

@@ -482,6 +482,7 @@ function sortInvoices(
 export async function getInvoices(
   params?: ListQuery,
 ): Promise<InvoiceListResult> {
+  // If using real API, call backend; mock still works behind flag
   return apiRequest<InvoiceListResult>("/invoices", {
     params,
     mock: () => {

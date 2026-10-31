@@ -81,14 +81,24 @@ export async function apiRequest<T>(
     return options.mock() as T;
   }
 
+  const headers: Record<string, string> = {
+    ...(options.body !== undefined ? { "Content-Type": "application/json" } : {}),
+    ...options.extraHeaders,
+  };
+  try {
+    if (typeof window !== "undefined") {
+      const token = localStorage.getItem("subloop_access_token") || localStorage.getItem("accessToken") || localStorage.getItem("token");
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+    }
+  } catch {
+    // ignore
+  }
+
   const response = await fetch(buildUrl(path, options.params), {
     method: options.method ?? "GET",
-    headers: {
-      ...(options.body !== undefined
-        ? { "Content-Type": "application/json" }
-        : {}),
-      ...options.extraHeaders,
-    },
+    headers,
     body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
     cache: "no-store",
   });
