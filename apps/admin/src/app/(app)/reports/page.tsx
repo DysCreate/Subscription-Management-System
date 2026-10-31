@@ -197,7 +197,7 @@ export default function ReportsPage() {
           <Card>
             <CardHeader><CardTitle>Overdue Invoices</CardTitle></CardHeader>
             <CardContent>
-              <DataTable columns={overdueCols} data={overdue.items || []} searchKey="invoiceNumber" />
+              <DataTable columns={overdueCols} data={overdue.items || []} />
             </CardContent>
           </Card>
         </TabsContent>

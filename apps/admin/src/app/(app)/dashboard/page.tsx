@@ -131,68 +131,92 @@ export default function DashboardPage() {
         <Card>
           <CardHeader><CardTitle>Revenue by month</CardTitle></CardHeader>
           <CardContent className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={revenue}>
-                <defs>
-                  <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#6366f1" stopOpacity={0.8} />
-                    <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" stroke={isDark ? "#94a3b8" : "#64748b"} />
-                <YAxis stroke={isDark ? "#94a3b8" : "#64748b"} />
-                <Tooltip />
-                <Area type="monotone" dataKey="revenue" stroke="#6366f1" fillOpacity={1} fill="url(#colorRev)" />
-              </AreaChart>
-            </ResponsiveContainer>
+            {revenue.length === 0 ? (
+              <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+                No revenue records found
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={revenue}>
+                  <defs>
+                    <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#6366f1" stopOpacity={0.8} />
+                      <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="month" stroke={isDark ? "#94a3b8" : "#64748b"} />
+                  <YAxis stroke={isDark ? "#94a3b8" : "#64748b"} />
+                  <Tooltip />
+                  <Area type="monotone" dataKey="revenue" stroke="#6366f1" fillOpacity={1} fill="url(#colorRev)" />
+                </AreaChart>
+              </ResponsiveContainer>
+            )}
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader><CardTitle>Subscriptions by status</CardTitle></CardHeader>
           <CardContent className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie data={subs} dataKey="count" nameKey="status" cx="50%" cy="50%" innerRadius={60} outerRadius={100} paddingAngle={2} label>
-                  {subs.map((_, i) => <Cell key={i} fill={colors[i % colors.length]} />)}
-                </Pie>
-                <Tooltip />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
+            {subs.length === 0 ? (
+              <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+                No subscription data available
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie data={subs} dataKey="count" nameKey="status" cx="50%" cy="50%" innerRadius={60} outerRadius={100} paddingAngle={2} label>
+                    {subs.map((_, i) => <Cell key={i} fill={colors[i % colors.length]} />)}
+                  </Pie>
+                  <Tooltip />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader><CardTitle>Payments by method</CardTitle></CardHeader>
           <CardContent className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={payments} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis type="number" stroke={isDark ? "#94a3b8" : "#64748b"} />
-                <YAxis dataKey="method" type="category" stroke={isDark ? "#94a3b8" : "#64748b"} />
-                <Tooltip />
-                <Bar dataKey="amount" fill="#22c55e" />
-              </BarChart>
-            </ResponsiveContainer>
+            {payments.length === 0 ? (
+              <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+                No payment methods recorded
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={payments} layout="vertical">
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis type="number" stroke={isDark ? "#94a3b8" : "#64748b"} />
+                  <YAxis dataKey="method" type="category" stroke={isDark ? "#94a3b8" : "#64748b"} />
+                  <Tooltip />
+                  <Bar dataKey="amount" fill="#22c55e" />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader><CardTitle>New vs churned</CardTitle></CardHeader>
           <CardContent className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={nvc}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" stroke={isDark ? "#94a3b8" : "#64748b"} />
-                <YAxis stroke={isDark ? "#94a3b8" : "#64748b"} />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="new" fill="#22c55e" />
-                <Bar dataKey="churned" fill="#ef4444" />
-              </BarChart>
-            </ResponsiveContainer>
+            {nvc.length === 0 ? (
+              <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+                No churn data recorded
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={nvc}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="month" stroke={isDark ? "#94a3b8" : "#64748b"} />
+                  <YAxis stroke={isDark ? "#94a3b8" : "#64748b"} />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="new" fill="#22c55e" />
+                  <Bar dataKey="churned" fill="#ef4444" />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </CardContent>
         </Card>
       </div>
