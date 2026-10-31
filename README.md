@@ -7,7 +7,7 @@ The repository now contains two workstreams:
 - **`apps/web`** — the Role D Next.js frontend experience (finance dashboard and customer portal), which shows labeled sample data by default.
 - **`apps/api`** — the backend core (member A): authentication, RBAC, catalog and the subscription lifecycle, built on NestJS + Prisma + PostgreSQL.
 
-Billing, payments, reports and the portal API endpoints are still owned by the other workstreams; `docs/deployment.md` records the contract the frontend expects from them.
+The web app includes a browser-local Task B billing/discount/payment demo. Billing, payments, reports and portal API endpoints are still owned by the other workstreams; `docs/deployment.md` records the contract the frontend expects from them.
 
 ## Quick start
 
@@ -24,7 +24,9 @@ Open:
 - Customer portal: <http://localhost:3000/portal>
 - Mailpit: <http://localhost:8025>
 
-The dashboard and portal deliberately show labeled sample data by default. Demo actions are not persisted.
+The dashboard and portal deliberately show labeled sample data by default. Billing demo actions (billing runs, discount rules, and payments) are stored in the browser's local storage only; they are not sent to an API or shared with other users. Use **Reset demo** in the billing workflow to restore the sample state.
+
+The Task B billing workflow supports generating an idempotent demo invoice from a due subscription, applying eligible discount rules and tax, confirming/cancelling invoices, recording partial/full payments, and filtering/exporting invoice rows. It is a frontend-only simulation: scheduled jobs, database persistence, payment processing, email delivery, and backend authorization are not implemented.
 
 ### API (backend core)
 
