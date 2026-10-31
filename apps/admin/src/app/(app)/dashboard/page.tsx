@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useRouter } from "next/navigation";
 import { LayoutDashboard, Plus, AlertCircle } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
@@ -27,6 +28,7 @@ function StatCard({ title, value, delta, red }: { title: string; value: string |
 }
 
 export default function DashboardPage() {
+  const router = useRouter();
   const [range, setRange] = React.useState("this_month");
   const [loading, setLoading] = React.useState(true);
   const [summary, setSummary] = React.useState<any>(null);
@@ -105,7 +107,10 @@ export default function DashboardPage() {
                 <SelectItem value="custom">Custom</SelectItem>
               </SelectContent>
             </Select>
-            <Button className="gap-2 bg-indigo-600 hover:bg-indigo-700 text-white">
+            <Button
+              className="gap-2 bg-indigo-600 hover:bg-indigo-700 text-white"
+              onClick={() => router.push("/subscriptions/new")}
+            >
               <Plus className="h-4 w-4" />
               New Subscription
             </Button>
