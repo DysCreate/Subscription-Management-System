@@ -2,7 +2,7 @@ import { addDays, addWeeks, addMonths, addYears, isAfter, isBefore, startOfDay }
 import type { BillingPeriod, ListQuery, Paginated, Plan, PlanStatus } from "@/types";
 import { apiRequest } from "./client";
 
-const INITIAL_MOCK_PLANS: Plan[] = [
+export const INITIAL_MOCK_PLANS: Plan[] = [
   {
     id: "plan_01",
     name: "Enterprise Monthly Growth",
@@ -92,7 +92,7 @@ const INITIAL_MOCK_PLANS: Plan[] = [
 
 const STORAGE_KEY = "subloop_plans_store";
 
-function getStoredPlans(): Plan[] {
+export function getStoredPlans(): Plan[] {
   if (typeof window === "undefined") return INITIAL_MOCK_PLANS;
   try {
     const raw = localStorage.getItem(STORAGE_KEY);

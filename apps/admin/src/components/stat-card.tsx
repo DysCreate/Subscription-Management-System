@@ -10,6 +10,10 @@ export interface StatCardProps {
   value: string;
   /** Optional trend or secondary info shown below the value. */
   subtitle?: string;
+  /** Optional classes for the primary metric value (e.g. red for overdue). */
+  valueClassName?: string;
+  /** Optional classes for the subtitle line. */
+  subtitleClassName?: string;
   /** Lucide icon rendered at top-right of the card. */
   icon?: LucideIcon;
   /** Accent colour class for the icon background, e.g. "bg-emerald-100 text-emerald-600". */
@@ -25,6 +29,8 @@ export function StatCard({
   title,
   value,
   subtitle,
+  valueClassName,
+  subtitleClassName,
   icon: Icon,
   iconClassName,
   className,
@@ -34,11 +40,23 @@ export function StatCard({
       <CardContent className="flex items-start justify-between p-6">
         <div className="space-y-1">
           <p className="text-sm font-medium text-muted-foreground">{title}</p>
-          <p className="text-2xl font-semibold tracking-tight tabular-nums">
+          <p
+            className={cn(
+              "text-2xl font-semibold tracking-tight tabular-nums",
+              valueClassName,
+            )}
+          >
             {value}
           </p>
           {subtitle && (
-            <p className="text-xs text-muted-foreground">{subtitle}</p>
+            <p
+              className={cn(
+                "text-xs text-muted-foreground",
+                subtitleClassName,
+              )}
+            >
+              {subtitle}
+            </p>
           )}
         </div>
         {Icon && (

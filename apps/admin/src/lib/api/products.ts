@@ -1,7 +1,7 @@
 import type { ListQuery, Paginated, Product } from "@/types";
 import { apiRequest } from "./client";
 
-const INITIAL_MOCK_PRODUCTS: Product[] = [
+export const INITIAL_MOCK_PRODUCTS: Product[] = [
   {
     id: "prod_01",
     sku: "PROD-ODOO-001",
@@ -106,7 +106,7 @@ const INITIAL_MOCK_PRODUCTS: Product[] = [
 
 const STORAGE_KEY = "subloop_products_store";
 
-function getStoredProducts(): Product[] {
+export function getStoredProducts(): Product[] {
   if (typeof window === "undefined") return INITIAL_MOCK_PRODUCTS;
   try {
     const raw = localStorage.getItem(STORAGE_KEY);

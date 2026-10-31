@@ -93,42 +93,82 @@ export interface Plan {
 /* Taxes & discounts                                                          */
 /* -------------------------------------------------------------------------- */
 
+export type TaxType = "percent" | "fixed";
+export type TaxStatus = "Active" | "Inactive";
+
 export interface Tax {
   id: string;
   name: string;
+  type?: TaxType;
+  rate?: number;
   ratePercent: number;
   isInclusive: boolean;
+  status?: TaxStatus;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export type DiscountType = "fixed" | "percent";
+export type DiscountScope = "Product" | "Subscription";
+export type DiscountStatus = "Active" | "Scheduled" | "Expired" | "Exhausted";
 
 export interface Discount {
   id: string;
   code: string;
+  /** Friendly marketing name shown in summaries, e.g. "Annual prepay reward". */
+  name?: string;
   type: DiscountType;
   /** Fixed amounts are in INR rupees; percent values are 0–100. */
   value: number;
+  scope?: DiscountScope;
+  productIds?: string[];
+  minPurchaseAmount?: number;
+  minQuantity?: number;
   validFrom?: string;
   validTo?: string;
   maxUses?: number;
   usedCount?: number;
   isActive: boolean;
+  status?: DiscountStatus;
+  /** When set, the discount only auto-applies to these plans. */
+  planIds?: string[];
+  /** Minimum pre-discount subtotal required for the discount to apply. */
+  minSubtotal?: number;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 /* -------------------------------------------------------------------------- */
 /* Quotation templates                                                        */
 /* -------------------------------------------------------------------------- */
 
+export interface QuotationTemplateLine {
+  id: string;
+  productId: string;
+  productName?: string;
+  variantId?: string;
+  variantName?: string;
+  quantity: number;
+  unitPrice: number;
+  lineTotal: number;
+  taxId?: string;
+}
+
 export interface QuotationTemplate {
   id: string;
   name: string;
   description?: string;
+  planId?: string;
+  planName?: string;
+  validityDays?: number;
+  lines?: QuotationTemplateLine[];
   productIds: string[];
   planIds: string[];
   taxIds: string[];
   discountIds?: string[];
   notes?: string;
   createdAt: string;
+  updatedAt?: string;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -143,6 +183,8 @@ export type SubscriptionStatus =
   | "paused"
   | "closed";
 
+export type PaymentTerms = "immediate" | "net_15" | "net_30" | "net_60";
+
 export interface Subscription {
   id: string;
   subscriptionNumber: string;
@@ -155,6 +197,12 @@ export interface Subscription {
   nextBillingDate?: string;
   closedAt?: string;
   createdAt: string;
+  paymentTerms?: PaymentTerms;
+  discountId?: string;
+  subtotal?: number;
+  discountTotal?: number;
+  taxTotal?: number;
+  total?: number;
 }
 
 export interface SubscriptionLine {
