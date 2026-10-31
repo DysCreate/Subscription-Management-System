@@ -37,7 +37,10 @@ function randomDelay(): Promise<void> {
 
 /** Query-string serialisation shared by list pages (page, search, sort, filters). */
 function buildUrl(path: string, params?: ListQuery): string {
-  const url = new URL(`${API_URL}${path.startsWith("/") ? path : `/${path}`}`);
+  const base = API_URL.replace(/\/+$/, "");
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  const full = base.endsWith("/api/v1") || normalizedPath.startsWith("/api/v1") ? `${base}${normalizedPath}` : `${base}/api/v1${normalizedPath}`;
+  const url = new URL(full);
   if (params) {
     if (params.page != null) url.searchParams.set("page", String(params.page));
     if (params.pageSize != null)
@@ -101,6 +104,7 @@ export async function apiRequest<T>(
     headers,
     body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
     cache: "no-store",
+    credentials: "include",
   });
 
   if (!response.ok) {
