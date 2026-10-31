@@ -41,8 +41,8 @@ function getInvoiceFilters(filters: Omit<InvoiceFilters, "dueFrom" | "dueTo" | "
   };
 }
 
-function getDemoInvoicePage(filters: InvoiceFilters): InvoicePage {
-  const matching = demoInvoices.filter((invoice) =>
+function getDemoInvoicePage(filters: InvoiceFilters, source: ReportInvoice[] = demoInvoices): InvoicePage {
+  const matching = source.filter((invoice) =>
     (filters.status === "All statuses" || invoice.status === filters.status)
     && invoice.customer.toLowerCase().includes(filters.customer.trim().toLowerCase())
     && invoice.plan.toLowerCase().includes(filters.plan.trim().toLowerCase())
@@ -89,6 +89,23 @@ export default function Dashboard() {
   const [plan, setPlan] = useState("");
   const [page, setPage] = useState(1);
   const [apiInvoices, setApiInvoices] = useState<{ key: string; page: InvoicePage } | null>(null);
+  const [demoInvoicesState, setDemoInvoicesState] = useState<ReportInvoice[]>(demoInvoices);
+  const [discountRules, setDiscountRules] = useState([
+    { name: "Brightloop launch", type: "15% off annual", scope: "subscription", status: "Active" },
+    { name: "Starter bundle", type: "₹1,000 fixed", scope: "product", status: "Active" },
+    { name: "Enterprise pilot", type: "5% off", scope: "subscription", status: "Expiring soon" },
+  ]);
+  const [paymentLedger, setPaymentLedger] = useState([
+    { invoiceNumber: "INV-00254", method: "UPI", amount: 1500, note: "Customer portal payment", paidOn: "2026-10-18" },
+    { invoiceNumber: "INV-00252", method: "Bank transfer", amount: 999, note: "Bank settlement", paidOn: "2026-10-15" },
+  ]);
+  const [paymentForm, setPaymentForm] = useState({
+    invoiceNumber: "INV-00254",
+    method: "UPI",
+    amount: "1500",
+    note: "Portal payment confirmation",
+  });
+  const [billingNotice, setBillingNotice] = useState("Billing automation is ready for the next run and has 18 renewals queued.");
 
   const filters = useMemo(
     () => getInvoiceFilters({ status, customer, plan, page }, dateRange),
@@ -96,8 +113,8 @@ export default function Dashboard() {
   );
   const filtersKey = JSON.stringify(filters);
   const demoInvoicePage = useMemo(
-    () => getDemoInvoicePage(filters),
-    [filters],
+    () => getDemoInvoicePage(filters, demoInvoicesState),
+    [filters, demoInvoicesState],
   );
   const invoicePage = isDemoMode
     ? demoInvoicePage
@@ -120,9 +137,75 @@ export default function Dashboard() {
   const revenueItems = period === "Last 3 months" ? (data?.revenue ?? []).slice(-3) : data?.revenue ?? [];
   const pageCount = invoicePage ? Math.max(1, Math.ceil(invoicePage.total / invoicePage.pageSize)) : 1;
   const maxRevenue = Math.ceil(Math.max(...revenueItems.map((item) => item.amount), 1) / 50000) * 50000;
+  const billingHighlights = [
+    { label: "Invoices generated", value: "2,184", note: "+14% this cycle", tone: "violet" },
+    { label: "Discount applied", value: "₹24,650", note: "14 rules active", tone: "green" },
+    { label: "Payments posted", value: "₹1.84L", note: "97.4% collected", tone: "amber" },
+  ];
+  const paymentActivity = [
+    { method: "UPI", amount: "₹98,200", detail: "12 payments cleared" },
+    { method: "Bank transfer", amount: "₹54,100", detail: "4 settlements pending" },
+    { method: "Card", amount: "₹31,950", detail: "7 cards captured" },
+  ];
+
+  const totalCollectedThisCycle = paymentLedger.reduce((sum, payment) => sum + payment.amount, 0);
+  const featuredInvoice = demoInvoicesState[0];
+
+  const runBilling = () => {
+    const nextInvoiceNumber = `INV-${String(300 + demoInvoicesState.length).padStart(5, "0")}`;
+    const nextInvoiceDate = new Date();
+    nextInvoiceDate.setDate(nextInvoiceDate.getDate() + 14);
+    const newInvoice: ReportInvoice = {
+      invoiceNumber: nextInvoiceNumber,
+      customer: "Brightloop Studio",
+      plan: "Growth",
+      dueDate: toLocalIsoDate(nextInvoiceDate),
+      amount: 2499,
+      status: "Outstanding",
+    };
+    setDemoInvoicesState((current) => [newInvoice, ...current]);
+    setBillingNotice(`Ran billing successfully: ${nextInvoiceNumber} was created for ${newInvoice.customer}.`);
+    setPaymentForm((current) => ({ ...current, invoiceNumber: nextInvoiceNumber }));
+  };
+
+  const toggleDiscountRule = (name: string) => {
+    setDiscountRules((current) => current.map((rule) => (
+      rule.name === name
+        ? { ...rule, status: rule.status === "Active" ? "Expiring soon" : "Active" }
+        : rule
+    )));
+  };
+
+  const recordPayment = () => {
+    const parsedAmount = Number(paymentForm.amount);
+    if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) return;
+
+    const targetInvoice = demoInvoicesState.find((invoice) => invoice.invoiceNumber === paymentForm.invoiceNumber);
+    if (!targetInvoice) return;
+
+    const nextAmount = Math.max(0, targetInvoice.amount - parsedAmount);
+    const nextStatus: ReportInvoice["status"] = nextAmount === 0 ? "Paid" : "Outstanding";
+
+    setDemoInvoicesState((current) => current.map((invoice) => (
+      invoice.invoiceNumber === paymentForm.invoiceNumber
+        ? { ...invoice, amount: nextAmount, status: nextStatus }
+        : invoice
+    )));
+
+    setPaymentLedger((current) => [{
+      invoiceNumber: paymentForm.invoiceNumber,
+      method: paymentForm.method,
+      amount: parsedAmount,
+      note: paymentForm.note.trim() || "Manual settlement",
+      paidOn: toLocalIsoDate(new Date()),
+    }, ...current]);
+
+    setBillingNotice(`Payment of ${formatCurrency(parsedAmount)} was recorded against ${paymentForm.invoiceNumber}.`);
+    setPaymentForm((current) => ({ ...current, amount: String(Math.max(0, nextAmount)) }));
+  };
 
   return (
-    <AppShell active="dashboard" eyebrow="FINANCE OVERVIEW" title="Subscription overview" description="Here’s what’s happening with your subscriptions today.">
+    <AppShell active="dashboard" eyebrow="BILLING / DISCOUNTS / PAYMENTS" title="Billing centre" description="Operate billing automation, discount rules, and payment collection in one place.">
       {isDemoMode && <DemoBanner />}
       {error && <div className="error-box" role="alert">Couldn’t load dashboard data: {error}</div>}
       {!data && !error && <div className="loading-box">Loading finance overview…</div>}
@@ -147,6 +230,128 @@ export default function Dashboard() {
             <div className="metric-top"><span>Overdue invoices</span><span className="metric-icon red">!</span></div>
             <div className="metric-value">{data.summary.overdueCount}</div>
             <div className="metric-caption"><span className="trend-negative">Needs attention</span> <span>past due date</span></div>
+          </article>
+        </section>
+
+        <section className="module-grid" aria-label="Billing operations overview">
+          <article className="panel module-panel">
+            <div className="panel-heading"><div><h2>Billing control</h2><p>Invoice automation and run summary</p></div><button className="primary-button">Run billing now</button></div>
+            <div className="module-metrics">
+              {billingHighlights.map((item) => (
+                <div key={item.label} className={`module-stat ${item.tone}`}>
+                  <span>{item.label}</span>
+                  <strong>{item.value}</strong>
+                  <small>{item.note}</small>
+                </div>
+              ))}
+            </div>
+            <div className="pipeline-status">
+              <div><span className="status-dot success" /> Draft invoices <strong>324</strong></div>
+              <div><span className="status-dot warning" /> Confirmed <strong>1,412</strong></div>
+              <div><span className="status-dot neutral" /> Paid <strong>448</strong></div>
+            </div>
+          </article>
+          <article className="panel module-panel">
+            <div className="panel-heading"><div><h2>Discount rules</h2><p>Live promotions and limit tracking</p></div><button className="outline-button">Manage rules</button></div>
+            <ul className="mini-list">
+              {discountRules.map((rule) => (
+                <li key={rule.name}>
+                  <div>
+                    <strong>{rule.name}</strong>
+                    <span>{rule.type}</span>
+                  </div>
+                  <div className="list-meta">
+                    <small>{rule.scope}</small>
+                    <span className={`status-chip ${rule.status === "Active" ? "status-paid" : "status-pending"}`}>{rule.status}</span>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </article>
+          <article className="panel module-panel">
+            <div className="panel-heading"><div><h2>Payment collection</h2><p>Performance across channels</p></div><button className="outline-button">View ledger</button></div>
+            <div className="method-stack">
+              {paymentActivity.map((method) => (
+                <div key={method.method} className="method-row">
+                  <div>
+                    <strong>{method.method}</strong>
+                    <span>{method.detail}</span>
+                  </div>
+                  <b>{method.amount}</b>
+                </div>
+              ))}
+            </div>
+          </article>
+        </section>
+
+        <section className="workflow-grid">
+          <article className="panel workflow-panel">
+            <div className="panel-heading"><div><h2>Billing workflow</h2><p>Run the next billing batch and review the ledger.</p></div><button className="primary-button" onClick={runBilling}>Run billing now</button></div>
+            <div className="workflow-banner">{billingNotice}</div>
+            <div className="workflow-summary">
+              <div>
+                <span>Latest invoice</span>
+                <strong>{featuredInvoice?.invoiceNumber ?? "—"}</strong>
+              </div>
+              <div>
+                <span>Cycle amount</span>
+                <strong>{formatCurrency(totalCollectedThisCycle)}</strong>
+              </div>
+              <div>
+                <span>Open balance</span>
+                <strong>{formatCurrency(demoInvoicesState.filter((invoice) => invoice.status !== "Paid").reduce((sum, invoice) => sum + invoice.amount, 0))}</strong>
+              </div>
+            </div>
+          </article>
+
+          <article className="panel workflow-panel">
+            <div className="panel-heading"><div><h2>Record payment</h2><p>Post a payment to an open invoice.</p></div></div>
+            <div className="payment-form">
+              <label>
+                Invoice
+                <select value={paymentForm.invoiceNumber} onChange={(event) => setPaymentForm((current) => ({ ...current, invoiceNumber: event.target.value }))}>
+                  {demoInvoicesState.filter((invoice) => invoice.status !== "Paid").map((invoice) => (
+                    <option key={invoice.invoiceNumber} value={invoice.invoiceNumber}>{invoice.invoiceNumber}</option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Method
+                <select value={paymentForm.method} onChange={(event) => setPaymentForm((current) => ({ ...current, method: event.target.value }))}>
+                  <option value="UPI">UPI</option>
+                  <option value="Bank transfer">Bank transfer</option>
+                  <option value="Card">Card</option>
+                  <option value="Cash">Cash</option>
+                </select>
+              </label>
+              <label>
+                Amount
+                <input type="number" min="1" value={paymentForm.amount} onChange={(event) => setPaymentForm((current) => ({ ...current, amount: event.target.value }))} />
+              </label>
+              <label>
+                Note
+                <input type="text" value={paymentForm.note} onChange={(event) => setPaymentForm((current) => ({ ...current, note: event.target.value }))} />
+              </label>
+              <button className="primary-button payment-submit" onClick={recordPayment}>Post payment</button>
+            </div>
+          </article>
+
+          <article className="panel workflow-panel">
+            <div className="panel-heading"><div><h2>Discount engine</h2><p>Apply or pause discount rules.</p></div></div>
+            <div className="rule-list">
+              {discountRules.map((rule) => (
+                <div key={rule.name} className="rule-item">
+                  <div>
+                    <strong>{rule.name}</strong>
+                    <span>{rule.type}</span>
+                  </div>
+                  <div className="rule-meta">
+                    <small>{rule.scope}</small>
+                    <button className={`mini-toggle ${rule.status === "Active" ? "active" : "paused"}`} onClick={() => toggleDiscountRule(rule.name)}>{rule.status}</button>
+                  </div>
+                </div>
+              ))}
+            </div>
           </article>
         </section>
 
