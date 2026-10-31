@@ -53,7 +53,7 @@ Brightloop earns its money every month, yet its subscriptions live in a spreadsh
 ## 5. Technology Stack
 | Layer | Technology |
 |---|---|
-| Frontend | Next.js 14, TypeScript, Tailwind CSS, shadcn/ui, TanStack Query, Recharts |
+| Frontend | Next.js 16, TypeScript, Tailwind CSS, shadcn/ui, TanStack Query, Recharts |
 | Backend | NestJS (TypeScript), REST + OpenAPI/Swagger |
 | Database | PostgreSQL 16 + Prisma ORM |
 | Queue / Cache | Redis + BullMQ (billing jobs, emails, dashboard cache) |

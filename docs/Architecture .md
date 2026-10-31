@@ -4,7 +4,7 @@
 
 | Layer | Choice | Why it wins for a hackathon |
 |---|---|---|
-| Frontend | **Next.js 14 (App Router) + TypeScript + Tailwind + shadcn/ui** | Fast to build polished UI; role-based layouts for Admin / Staff / Portal in one app |
+| Frontend | **Next.js 16 (App Router) + TypeScript + Tailwind + shadcn/ui** | Fast to build polished UI; role-based layouts for Admin / Staff / Portal in one app |
 | Charts | **Recharts** | Quick dashboards (MRR, revenue, overdue) |
 | Data fetching | **TanStack Query** | Caching keeps every page well under 2s |
 | Backend | **NestJS (TypeScript)** | Modular structure, built-in guards for RBAC, validation pipes, easy cron/queue integration |
