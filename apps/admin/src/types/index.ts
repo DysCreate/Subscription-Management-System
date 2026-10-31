@@ -33,40 +33,57 @@ export interface Customer {
 /* Products, variants & plans                                                 */
 /* -------------------------------------------------------------------------- */
 
+export type ProductType = "Software" | "Add-on" | "Service" | "Hardware";
+
 export interface Product {
   id: string;
-  sku: string;
+  sku?: string;
   name: string;
+  type: ProductType;
   description?: string;
   category?: string;
-  basePrice: number;
+  salesPrice: number;
+  costPrice: number;
+  basePrice?: number;
   isActive: boolean;
   createdAt: string;
-  variants?: ProductVariant[];
+  variants: ProductVariant[];
 }
 
 /**
  * Example domain fact: a variant "Brand = Odoo" adds 560 to the price
- * (priceDelta = 560). basePrice + sum(priceDelta) of selected variants.
+ * (extraPrice / priceDelta = 560).
  */
 export interface ProductVariant {
   id: string;
-  productId: string;
-  name: string;
-  attributes: Record<string, string>;
-  priceDelta: number;
+  productId?: string;
+  name?: string;
+  attribute: string;
+  value: string;
+  attributes?: Record<string, string>;
+  extraPrice: number;
+  priceDelta?: number;
 }
 
 export type BillingPeriod = "daily" | "weekly" | "monthly" | "yearly";
 
+export type PlanStatus = "available" | "scheduled" | "expired";
+
 export interface Plan {
   id: string;
-  productId: string;
+  productId?: string;
   variantId?: string;
   name: string;
   description?: string;
   billingPeriod: BillingPeriod;
   price: number;
+  minQuantity: number;
+  availableFrom?: string;
+  availableTo?: string;
+  autoClose: boolean;
+  closable: boolean;
+  pausable: boolean;
+  renewable: boolean;
   trialDays?: number;
   isActive: boolean;
   createdAt: string;
