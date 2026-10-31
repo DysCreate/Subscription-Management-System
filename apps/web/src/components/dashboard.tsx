@@ -221,6 +221,18 @@ export default function Dashboard() {
     return { method, amount, count: records.length };
   }).filter((method) => method.count > 0);
   const paymentChart = isDemoMode ? paymentActivity : data?.summary.paymentsByMethod ?? [];
+  const paymentTotal = paymentChart.reduce((sum, item) => sum + item.amount, 0);
+  const paymentColors = ["#b6f0dc", "#a99cf7", "#ffd38a", "#f79a9a"];
+  const paymentGradient = paymentChart.reduce(
+    (result, item, index) => {
+      const end = result.offset + (paymentTotal ? (item.amount / paymentTotal) * 100 : 0);
+      return {
+        offset: end,
+        segments: [...result.segments, `${paymentColors[index % paymentColors.length]} ${result.offset}% ${end}%`],
+      };
+    },
+    { offset: 0, segments: [] as string[] },
+  ).segments.join(", ");
 
   const persistBilling = (next: BillingDemoState) => {
     const normalized = normalizeBillingDemoState(next);
@@ -450,38 +462,55 @@ export default function Dashboard() {
     : apiInvoices?.key === filtersKey ? apiInvoices.page.items : [];
 
   return (
-    <AppShell active="dashboard" eyebrow="BILLING / DISCOUNTS / PAYMENTS" title="Billing centre" description="Operate billing automation, discount rules, and payment collection in one place.">
+    <AppShell active="dashboard" eyebrow="YOUR BUSINESS, IN FOCUS" title="Revenue command center" description="Keep billing moving, turn renewals into revenue, and spot what needs attention.">
       {isDemoMode && <DemoBanner />}
       {error && <div className="error-box" role="alert">Couldn’t load dashboard data: {error}</div>}
       {actionError && <div className="error-box" role="alert">{actionError}</div>}
       {!data && !error && <div className="loading-box">Loading finance overview…</div>}
       {data && <>
+        <section className="dashboard-hero">
+          <div className="hero-copy">
+            <span className="hero-kicker"><i /> REVENUE SNAPSHOT</span>
+            <h2>Built on recurring.<br /><span>Ready for what’s next.</span></h2>
+            <p>Your subscription engine at a glance. Billing, discounts, and collections in sync.</p>
+            <a className="hero-link" href="#billing-workflow">Explore billing activity <span aria-hidden="true">↘</span></a>
+          </div>
+          <div className="hero-amount">
+            <span>MONTHLY REVENUE</span>
+            <strong>{formatCurrency(data.summary.monthlyRevenue)}</strong>
+            <small><i /> Collected this month</small>
+          </div>
+          <div className="hero-orbit hero-orbit-one" />
+          <div className="hero-orbit hero-orbit-two" />
+          <span className="hero-decoration" aria-hidden="true">S</span>
+        </section>
+
         <section className="metric-grid" aria-label="Business summary">
           <article className="metric-card">
             <div className="metric-top"><span>Active subscriptions</span><span className="metric-icon violet">↗</span></div>
             <div className="metric-value">{data.summary.activeSubscriptions.toLocaleString("en-IN")}</div>
-            <div className="metric-caption"><span className="caption-neutral">Currently active</span></div>
+            <div className="metric-caption"><span className="metric-dot dot-violet" />Currently active</div>
           </article>
           <article className="metric-card">
             <div className="metric-top"><span>Monthly revenue</span><span className="metric-icon green">₹</span></div>
             <div className="metric-value">{formatCurrency(data.summary.monthlyRevenue)}</div>
-            <div className="metric-caption"><span className="caption-neutral">Collected this month</span></div>
+            <div className="metric-caption"><span className="metric-dot dot-green" />Collected this month</div>
           </article>
           <article className="metric-card">
             <div className="metric-top"><span>Outstanding</span><span className="metric-icon amber">◷</span></div>
             <div className="metric-value">{formatCurrency(data.summary.outstanding)}</div>
-            <div className="metric-caption"><span className="caption-neutral">Across {data.summary.unpaidInvoiceCount} invoices</span></div>
+            <div className="metric-caption"><span className="metric-dot dot-amber" />Across {data.summary.unpaidInvoiceCount} invoices</div>
           </article>
           <article className="metric-card">
             <div className="metric-top"><span>Overdue invoices</span><span className="metric-icon red">!</span></div>
             <div className="metric-value">{data.summary.overdueCount}</div>
-            <div className="metric-caption"><span className="trend-negative">Needs attention</span> <span>past due date</span></div>
+            <div className="metric-caption"><span className="metric-dot dot-red" />{data.summary.overdueCount ? "Needs attention" : "All clear"}</div>
           </article>
         </section>
 
         <section className="module-grid" aria-label="Billing operations overview">
           <article className="panel module-panel">
-            <div className="panel-heading"><div><h2>Billing control</h2><p>Invoice automation and run summary</p></div><button className="primary-button" disabled={!isDemoMode || !billingHydrated} onClick={runBilling}>Run billing now</button></div>
+            <div className="panel-heading"><div><span className="panel-overline">AUTOMATION</span><h2>Billing control</h2><p>Invoice automation and run summary</p></div><button className="primary-button" disabled={!isDemoMode || !billingHydrated} onClick={runBilling}>Run billing now <span aria-hidden="true">→</span></button></div>
             <div className="module-metrics">
               {billingHighlights.map((item) => (
                 <div key={item.label} className={`module-stat ${item.tone}`}>
@@ -498,7 +527,7 @@ export default function Dashboard() {
             </div>
           </article>
           <article className="panel module-panel">
-            <div className="panel-heading"><div><h2>Discount rules</h2><p>{activeDiscountCount} active · limits and dates enforced</p></div><a className="outline-button" href="#discount-engine">Manage rules</a></div>
+            <div className="panel-heading"><div><span className="panel-overline">SMART SAVINGS</span><h2>Discount rules</h2><p>{activeDiscountCount} active · limits and dates enforced</p></div><a className="outline-button" href="#discount-engine">Manage rules <span aria-hidden="true">↗</span></a></div>
             <ul className="mini-list">
               {billing.discounts.slice(0, 3).map((rule) => (
                 <li key={rule.id}>
@@ -516,7 +545,7 @@ export default function Dashboard() {
             </ul>
           </article>
           <article className="panel module-panel">
-            <div className="panel-heading"><div><h2>Payment collection</h2><p>{billing.payments.length} recorded payment(s)</p></div><a className="outline-button" href="#payment-ledger">View ledger</a></div>
+            <div className="panel-heading"><div><span className="panel-overline">CASH FLOW</span><h2>Payment collection</h2><p>{billing.payments.length} recorded payment(s)</p></div><a className="outline-button" href="#payment-ledger">View ledger <span aria-hidden="true">↗</span></a></div>
             <div className="method-stack">
               {paymentActivity.map((method) => (
                 <div key={method.method} className="method-row">
@@ -532,9 +561,40 @@ export default function Dashboard() {
           </article>
         </section>
 
-        <section className="workflow-grid">
+        <section className="chart-grid">
+          <article className="panel revenue-panel">
+            <div className="panel-heading"><div className="panel-title-block"><span className="panel-overline">REVENUE TRENDS</span><h2>Revenue over time</h2><p>Monthly recurring revenue collected</p></div><select className="select-button" aria-label="Revenue chart period" value={period} onChange={(event) => setPeriod(event.target.value)}><option>Last 6 months</option><option>Last 3 months</option></select></div>
+            <div className="chart-summary"><div className="revenue-total">{formatCurrency(data.summary.monthlyRevenue)}</div><span className="chart-context"><i /> Monthly total</span></div>
+            <div className="chart-area" aria-label="Monthly revenue chart">
+              <div className="chart-y-labels"><span>{formatCurrency(maxRevenue)}</span><span>{formatCurrency(maxRevenue * .75)}</span><span>{formatCurrency(maxRevenue * .5)}</span><span>{formatCurrency(maxRevenue * .25)}</span><span>₹0</span></div>
+              <div className="chart-content">
+                <div className="chart-gridlines"><i /><i /><i /><i /><i /></div>
+                <div className="bar-chart">{revenueItems.map((item, index) => (
+                  <div className={`bar-column ${index === revenueItems.length - 1 ? "bar-column-current" : ""}`} key={item.month}><span className="bar-tooltip">{formatCurrency(item.amount)}</span><div className="bar" style={{ height: `${Math.max(7, (item.amount / maxRevenue) * 100)}%` }} title={`${item.month}: ${formatCurrency(item.amount)}`} /><span className="bar-month">{item.month}</span></div>
+                ))}</div>
+              </div>
+            </div>
+          </article>
+          <article className="panel payment-panel">
+            <div className="panel-heading"><div className="panel-title-block"><span className="panel-overline">COLLECTION MIX</span><h2>Payments by method</h2><p>{isDemoMode ? "Recorded in this browser" : "Collected this month"}</p></div><span className="payment-card-mark" aria-hidden="true">↗</span></div>
+            <div className="payment-visual">
+              <div className="payment-donut" role="img" aria-label={`Payments collected: ${formatCurrency(paymentTotal)}`} style={{ background: `conic-gradient(${paymentGradient || "#e9eaf1 0% 100%"})` }}>
+                <div className="payment-donut-center"><strong>{formatCurrency(paymentTotal)}</strong><span>COLLECTED</span></div>
+              </div>
+              <div className="payment-list">
+                {paymentChart.map((item, index) => {
+                  const percentage = paymentTotal ? Math.round((item.amount / paymentTotal) * 100) : 0;
+                  return <div className="payment-row" key={item.method}><div className="payment-row-label"><span className="payment-dot" style={{ backgroundColor: paymentColors[index % paymentColors.length] }} />{item.method}<strong>{percentage}%</strong></div><span className="payment-row-amount">{formatCurrency(item.amount)}</span></div>;
+                })}
+                {paymentChart.length === 0 && <div className="empty-state">No payments posted yet.</div>}
+              </div>
+            </div>
+          </article>
+        </section>
+
+        <section className="workflow-grid" id="billing-workflow">
           <article className="panel workflow-panel">
-            <div className="panel-heading"><div><h2>Billing workflow</h2><p>Run the next billing batch and review the ledger.</p></div><div className="workflow-actions"><button className="outline-button" disabled={!isDemoMode} onClick={resetBillingDemo}>Reset demo</button><button className="primary-button" disabled={!isDemoMode || !billingHydrated} onClick={runBilling}>Run billing now</button></div></div>
+            <div className="panel-heading"><div><span className="panel-overline">BILLING ENGINE</span><h2>Billing workflow</h2><p>Run the next billing batch and review the ledger.</p></div><div className="workflow-actions"><button className="outline-button" disabled={!isDemoMode} onClick={resetBillingDemo}>Reset demo</button><button className="primary-button" disabled={!isDemoMode || !billingHydrated} onClick={runBilling}>Run billing now</button></div></div>
             <div className="workflow-banner" role="status">{billingNotice}</div>
             {billing.lastRun && <div className="run-summary" role="status">Last run {formatDate(billing.lastRun.ranAt)}: {billing.lastRun.created} created · {billing.lastRun.skipped} skipped · {billing.lastRun.failed} failed.</div>}
             <div className="workflow-summary">
@@ -646,38 +706,10 @@ export default function Dashboard() {
           </tbody></table></div>
         </section>
 
-        <section className="chart-grid">
-          <article className="panel revenue-panel">
-            <div className="panel-heading"><div><h2>Revenue over time</h2><p>Monthly recurring revenue collected</p></div><select className="select-button" aria-label="Revenue chart period" value={period} onChange={(event) => setPeriod(event.target.value)}><option>Last 6 months</option><option>Last 3 months</option></select></div>
-            <div className="revenue-total">{formatCurrency(data.summary.monthlyRevenue)}</div>
-            <div className="chart-area" aria-label="Monthly revenue chart">
-              <div className="chart-y-labels"><span>{formatCurrency(maxRevenue)}</span><span>{formatCurrency(maxRevenue * .75)}</span><span>{formatCurrency(maxRevenue * .5)}</span><span>{formatCurrency(maxRevenue * .25)}</span><span>₹0</span></div>
-              <div className="chart-content">
-                <div className="chart-gridlines"><i /><i /><i /><i /><i /></div>
-                <div className="bar-chart">{revenueItems.map((item, index) => {
-                  return <div className="bar-column" key={item.month}><div className={`bar ${index === revenueItems.length - 1 ? "bar-current" : ""}`} style={{ height: `${Math.max(7, (item.amount / maxRevenue) * 100)}%` }} title={`${item.month}: ${formatCurrency(item.amount)}`} /><span>{item.month}</span></div>;
-                })}</div>
-              </div>
-            </div>
-          </article>
-          <article className="panel payment-panel">
-            <div className="panel-heading"><div><h2>Payments by method</h2><p>{isDemoMode ? "Recorded in this browser" : "Collected this month"}</p></div><span className="more-button" aria-hidden="true">···</span></div>
-            <div className="payment-total">{formatCurrency(paymentChart.reduce((sum, item) => sum + item.amount, 0))}</div>
-            <div className="payment-list">
-              {paymentChart.map((item, index) => {
-                const total = paymentChart.reduce((sum, method) => sum + method.amount, 0) || 1;
-                const colors = ["#7464e8", "#50b99a", "#f2af5c", "#e57c7c"];
-                return <div className="payment-row" key={item.method}><div className="payment-row-label"><span className="payment-dot" style={{ backgroundColor: colors[index % colors.length] }} />{item.method}<strong>{formatCurrency(item.amount)}</strong></div><div className="payment-track"><span style={{ width: `${(item.amount / total) * 100}%`, backgroundColor: colors[index % colors.length] }} /></div></div>;
-              })}
-              {paymentChart.length === 0 && <div className="empty-state">No payments posted yet.</div>}
-            </div>
-          </article>
-        </section>
-
-        <section className="panel overdue-panel">
+        <section className="panel overdue-panel" id="invoice-center">
           <div className="panel-heading overdue-heading">
-            <div><div className="table-title"><h2>Invoices</h2><span className="count-badge">{invoicePage?.total ?? "…"}</span></div><p>Filter invoices by status, due date, customer, and plan.</p></div>
-            <button className="outline-button" disabled={!invoicePage} onClick={() => downloadCsv(invoiceRows)}>↓ &nbsp;Export page</button>
+            <div><span className="panel-overline">ACCOUNTS RECEIVABLE</span><div className="table-title"><h2>Invoice center</h2><span className="count-badge">{invoicePage?.total ?? "…"}</span></div><p>See what’s paid, what’s pending, and what needs a nudge.</p></div>
+            <button className="outline-button export-button" disabled={!invoicePage} onClick={() => downloadCsv(invoiceRows)}><span aria-hidden="true">↓</span> Export current page</button>
           </div>
           <div className="invoice-filters" aria-label="Invoice filters">
             <select className="filter-select" aria-label="Filter by due date" value={dateRange} onChange={(event) => { setDateRange(event.target.value); setPage(1); }}><option>Last 30 days</option><option>Last 90 days</option><option>Last 6 months</option><option>Upcoming 90 days</option></select>

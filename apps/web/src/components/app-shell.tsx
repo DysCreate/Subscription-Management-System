@@ -46,12 +46,12 @@ export default function AppShell({
       <main className="main-content">
         <header className="topbar">
           <div className="breadcrumbs">SubLoop <span>/</span> {active === "dashboard" ? "Overview" : "Customer portal"}</div>
-          <div className="topbar-right"><span className="live-dot" /> Workspace <span className="topbar-divider" /> <button className="icon-button" aria-label="Notifications">♧</button></div>
+          <div className="topbar-right"><span className="live-dot" /> <span>Workspace</span><span className="topbar-divider" /> <button className="icon-button" aria-label="Notifications">♧</button></div>
         </header>
         <div className="page-container">
           <div className="page-heading">
             <div><div className="eyebrow">{eyebrow}</div><h1>{title}</h1><p>{description}</p></div>
-            <div className="heading-actions">{active === "dashboard" ? <span className="date-chip">◷ &nbsp;Finance&nbsp;⌄</span> : <div className="avatar customer-avatar">CU</div>}</div>
+            <div className="heading-actions">{active === "dashboard" ? <span className="date-chip">◷ &nbsp;This month</span> : <div className="avatar customer-avatar">CU</div>}</div>
           </div>
           {children}
           <footer className="page-footer"><span>© 2026 SubLoop · Subscription operations, made simple.</span><span>Privacy &nbsp;·&nbsp; Support</span></footer>

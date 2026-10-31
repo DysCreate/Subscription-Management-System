@@ -47,18 +47,27 @@ export default function Portal() {
     }, 100);
   }
 
+  const activeSubscriptions = subscriptions.filter((item) => item.status === "Active");
+  const nextSubscription = activeSubscriptions.reduce<Subscription | null>((next, item) => {
+    if (!next || item.nextBillingDate < next.nextBillingDate) return item;
+    return next;
+  }, null);
+  const unpaidInvoices = invoices.filter((invoice) => invoice.status !== "Paid");
+  const amountDue = unpaidInvoices.reduce((sum, invoice) => sum + invoice.amount, 0);
+
   return (
     <AppShell active="portal" eyebrow="YOUR ACCOUNT" title="Your account" description="Manage your subscriptions, invoices, and account details.">
       {isDemoMode && <DemoBanner />}
       {error && <div className="error-box" role="alert">Couldn’t load your account: {error}</div>}
       {notice && <div className="notice-box" role="status">{notice}</div>}
       <section className="portal-welcome">
-        <div className="welcome-monogram">CU</div><div><span className="eyebrow">CUSTOMER ACCOUNT</span><h2>Your subscriptions</h2><p>Review your plans, invoices, and upcoming payments.</p></div><button className="outline-button account-button" onClick={() => showDemoNotice("Account settings")}>Account settings</button>
+        <div className="portal-welcome-copy"><span className="portal-welcome-kicker"><i /> CUSTOMER SPACE</span><h2>Your subscriptions,<br /><span>beautifully in sync.</span></h2><p>Everything you need to stay on top of your plans and payments.</p><button className="portal-primary-action" onClick={() => amountDue > 0 ? setActiveTab("invoices") : showDemoNotice("Plan discovery")}>{amountDue > 0 ? "Review amount due" : "Explore plans"} <span aria-hidden="true">→</span></button></div>
+        <div className="portal-welcome-art" aria-hidden="true"><div className="portal-art-ring portal-art-ring-one" /><div className="portal-art-ring portal-art-ring-two" /><div className="portal-art-card"><span className="portal-art-card-label">YOUR PLANS</span><strong>{activeSubscriptions.length.toString().padStart(2, "0")}</strong><span>active subscriptions</span><i>↗</i></div><div className="portal-art-orb">s<span>.</span></div></div>
       </section>
       <section className="portal-summary-grid">
-        <article className="portal-summary"><span>Active plans</span><strong>{subscriptions.filter((item) => item.status === "Active").length}</strong><small>Across your account</small></article>
-        <article className="portal-summary"><span>Next payment</span><strong>{currency.format(subscriptions.find((item) => item.status === "Active")?.amount ?? 0)}</strong><small>{subscriptions.find((item) => item.status === "Active") ? `Due ${date(subscriptions.find((item) => item.status === "Active")!.nextBillingDate)}` : "No upcoming payments"}</small></article>
-        <article className="portal-summary"><span>Amount due</span><strong>{currency.format(invoices.filter((invoice) => invoice.status !== "Paid").reduce((sum, invoice) => sum + invoice.amount, 0))}</strong><small>{invoices.filter((invoice) => invoice.status !== "Paid").length} unpaid invoice(s)</small></article>
+        <article className="portal-summary portal-summary-active"><span><i /> ACTIVE PLANS</span><strong>{activeSubscriptions.length.toString().padStart(2, "0")}</strong><small>Subscriptions in good standing</small><span className="summary-watermark">01</span></article>
+        <article className="portal-summary"><span><i className="summary-dot summary-dot-violet" /> NEXT RENEWAL</span><strong>{nextSubscription ? currency.format(nextSubscription.amount) : "—"}</strong><small>{nextSubscription ? `${nextSubscription.plan} · ${date(nextSubscription.nextBillingDate)}` : "No upcoming payments"}</small></article>
+        <article className={`portal-summary ${amountDue > 0 ? "portal-summary-due" : ""}`}><span><i className="summary-dot summary-dot-amber" /> AMOUNT DUE</span><strong>{currency.format(amountDue)}</strong><small>{unpaidInvoices.length} unpaid invoice{unpaidInvoices.length === 1 ? "" : "s"}</small><button aria-label="View unpaid invoices" onClick={() => setActiveTab("invoices")}>View invoices <span aria-hidden="true">↗</span></button></article>
       </section>
       <section className="panel portal-panel">
         <div className="portal-tabs" role="tablist" aria-label="Account details">
@@ -66,8 +75,8 @@ export default function Portal() {
           <button role="tab" aria-selected={activeTab === "invoices"} className={activeTab === "invoices" ? "portal-tab selected" : "portal-tab"} onClick={() => setActiveTab("invoices")}>Invoices <span>{invoices.length}</span></button>
         </div>
         {loading ? <div className="empty-state">Loading your account…</div> : activeTab === "subscriptions" ? <div className="subscription-list">
-          {subscriptions.map((subscription) => <article className="subscription-item" key={subscription.id}>
-            <div className="plan-icon">▧</div><div className="subscription-main"><div className="subscription-title">{subscription.plan}<span className={`status-pill ${subscription.status === "Active" ? "status-paid" : subscription.status === "Paused" ? "status-neutral" : "status-pending"}`}><i />{subscription.status}</span></div><span className="subscription-id">{subscription.id} &nbsp;·&nbsp; Renews {date(subscription.nextBillingDate)}</span></div>
+          {subscriptions.map((subscription, index) => <article className="subscription-item" key={subscription.id}>
+            <div className={`plan-icon plan-icon-${index % 3}`}>{index % 3 === 0 ? "✳" : index % 3 === 1 ? "◈" : "✦"}</div><div className="subscription-main"><div className="subscription-title">{subscription.plan}<span className={`status-pill ${subscription.status === "Active" ? "status-paid" : subscription.status === "Paused" ? "status-neutral" : "status-pending"}`}><i />{subscription.status}</span></div><span className="subscription-id">{subscription.id} &nbsp;·&nbsp; Renews {date(subscription.nextBillingDate)}</span></div>
             <div className="subscription-price"><strong>{currency.format(subscription.amount)}</strong><span>/ {subscription.period}</span></div>
             <button className="outline-button subscription-action" onClick={() => showDemoNotice(subscription.status === "Paused" ? "Resume request" : "Subscription request")}>{subscription.status === "Paused" ? "Request resume" : "Manage"}</button>
           </article>)}
