@@ -1,0 +1,119 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * SubLoop design tokens.
+ * Light theme by default, full dark-mode support.
+ * Primary: indigo (#4F46E5). Neutrals: slate. Semantic: success/warning/info.
+ */
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 224 71% 4%; /* slate-950 */
+
+    --card: 0 0% 100%;
+    --card-foreground: 224 71% 4%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 224 71% 4%;
+
+    --primary: 239 84% 67%; /* indigo-600 #4F46E5 */
+    --primary-foreground: 226 100% 97%;
+
+    --secondary: 210 40% 96.1%; /* slate-100 */
+    --secondary-foreground: 222 47% 11%;
+
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%; /* slate-500 */
+
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222 47% 11%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 98%;
+
+    --success: 152 69% 31%; /* emerald-600 */
+    --success-foreground: 0 0% 100%;
+
+    --warning: 32 95% 44%; /* amber-600 */
+    --warning-foreground: 0 0% 100%;
+
+    --info: 217 91% 60%; /* blue-500 */
+    --info-foreground: 0 0% 100%;
+
+    --border: 214.3 31.8% 91.4%; /* slate-200 */
+    --input: 214.3 31.8% 91.4%;
+    --ring: 239 84% 67%;
+
+    --radius: 0.75rem;
+  }
+
+  .dark {
+    --background: 224 71% 4%;
+    --foreground: 210 40% 98%; /* slate-50 */
+
+    --card: 224 47% 8%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 224 47% 8%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 239 90% 67%; /* indigo-500 #6366F1 */
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 217.2 32.6% 17.5%; /* slate-800 */
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20% 65%;
+
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 63% 41%;
+    --destructive-foreground: 0 0% 98%;
+
+    --success: 158 64% 52%; /* emerald-400 */
+    --success-foreground: 224 71% 4%;
+
+    --warning: 38 92% 50%; /* amber-400 */
+    --warning-foreground: 224 71% 4%;
+
+    --info: 217 91% 65%; /* blue-400 */
+    --info-foreground: 224 71% 4%;
+
+    --border: 217.2 32.6% 20%;
+    --input: 217.2 32.6% 22%;
+    --ring: 239 90% 67%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply tracking-tight;
+  }
+}
+
+@layer utilities {
+  /* Violet gradient accents — use sparingly (logo, hero buttons, KPI accents). */
+  .text-gradient {
+    @apply bg-gradient-to-r from-indigo-600 via-violet-600 to-fuchsia-600 bg-clip-text text-transparent;
+  }
+  .gradient-primary {
+    @apply bg-gradient-to-r from-indigo-600 to-violet-600;
+  }
+}
